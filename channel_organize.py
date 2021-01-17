@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import tweepy
 import yaml
 import time
 import plain_db
@@ -15,24 +14,21 @@ import export_to_telegraph
 with open('credential') as f:
 	credential = yaml.load(f, Loader=yaml.FullLoader)
 
-existing = plain_db.load('existing')
-
-Day = 24 * 60 * 60
-
 def getPosts(channel):
 	start = time.time()
 	result = []
 	posts = webgram.getPosts(channel)[1:]
-	result += posts
-	while posts and posts[0].time > (time.time() - 
-			credential['channels'][channel]['back_days'] * Day):
+	for post in posts:
+		yield post
+	while posts:
 		pivot = posts[0].post_id
 		posts = webgram.getPosts(channel, posts[0].post_id, 
 			direction='before', force_cache=True)[1:]
-		if not posts:
-			break
-		result += posts
-	for post in result:
+		for post in posts:
+			yield post
+
+def getAlbums(posts):
+	for post in posts:
 		try:
 			yield post_2_album.get('https://t.me/' + post.getKey()), post
 		except Exception as e:
@@ -64,12 +60,20 @@ def getText(album, post):
 		text += '\n\n' + album.url
 	return text
 
+def getVideoTitle(album, post):
+	title = album.cap_html
+	for separator in '\n <':
+		if len(title.split(separator)[0]) > 6:
+			title = title.split(separator)[0]
+	if title.find('】') != -1:
+		title = title.split('】')[0] + '】'
+	return title
+
 def run():
 	for channel in credential['channels']:
-		for album, post in getPosts(channel):
+		for album, post in getAlbums(getPosts(channel)):
 			if album.video:
-				print(post.soup)
-				print('~~~~~~~~~')
+				print(getVideoTitle(album, post), album.url)
 			
 if __name__ == '__main__':
 	run()
