@@ -29,10 +29,10 @@ def getPosts(channel):
 		pivot = posts[0].post_id
 		posts = webgram.getPosts(channel, posts[0].post_id, 
 			direction='before', force_cache=True)[1:]
+		if not posts:
+			break
 		result += posts
 	for post in result:
-		if post.time > time.time() - Day:
-			continue
 		try:
 			yield post_2_album.get('https://t.me/' + post.getKey()), post
 		except Exception as e:
@@ -64,31 +64,8 @@ def getText(album, post):
 		text += '\n\n' + album.url
 	return text
 
-def getMediaSingle(url, api, album):
-	cached_url.get(url, force_cache=True, mode='b')
-	path = cached_url.getFilePath(url)
-	if os.stat(path).st_size >= 4883 * 1024: # twitter limit
-		return
-	try:
-		return api.media_upload(path).media_id
-	except Exception as e:
-		print('media upload failed:', str(e), album.url, url, path)
-
-def getMedia(album, api):
-	# tweepy does not support video yet. 
-		# Hopefully they will support it soon: https://github.com/tweepy/tweepy/pull/1414
-	# if album.video:
-		# result = getMediaSingle(album.video, api, album)
-		# if result:
-		# 	return [result]
-	result = [getMediaSingle(img, api, album) for img in album.imgs]
-	return [item for item in result if item][:4]
-		
 def run():
 	for channel in credential['channels']:
-		auth = tweepy.OAuthHandler(credential['twitter_consumer_key'], credential['twitter_consumer_secret'])
-		auth.set_access_token(credential['channels'][channel]['access_key'], credential['channels'][channel]['access_secret'])
-		api = tweepy.API(auth)
 		for album, post in getPosts(channel):
 			status_text = getText(album, post)
 			if len(status_text) > 280: 
