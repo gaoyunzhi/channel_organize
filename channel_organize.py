@@ -67,26 +67,9 @@ def getText(album, post):
 def run():
 	for channel in credential['channels']:
 		for album, post in getPosts(channel):
-			status_text = getText(album, post)
-			if len(status_text) > 280: 
-				continue
-			if existing.get(album.url):
-				continue
-			existing.update(album.url, -1) # place holder
-			media_ids = [item for item in getMedia(album, api) if item]
-			if not media_ids and (album.video or album.imgs):
-				print('all media upload failed: ', album.url)
-				continue
-			if not status_text:
-				status_text = album.url
-			try:
-				result = api.update_status(status=status_text, media_ids=media_ids)
-			except Exception as e:
-				if 'Tweet needs to be a bit shorter.' not in str(e):
-					print('send twitter status failed:', str(e), album.url)
-				continue
-			existing.update(album.url, result.id)
-			return # only send one item every 10 minute
+			if album.video:
+				print(post.soup)
+				print('~~~~~~~~~')
 			
 if __name__ == '__main__':
 	run()
